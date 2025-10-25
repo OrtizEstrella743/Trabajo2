@@ -1,8 +1,7 @@
-// app.js - Módulo principal del proyecto Trabajo2HM
-
-class Trabajo2HM {
+// app.js - Módulo principal del proyecto
+class Trabajo2 {
     static holaMundo() {
-        return "¡Hola Mundo desde Trabajo2HM!";
+        return "¡Hola Mundo desde Trabajo2!";
     }
 
     static saludar(nombre = "Estudiante") {
@@ -26,4 +25,4 @@ class Trabajo2HM {
     }
 }
 
-module.exports = Trabajo2HM;
+module.exports = Trabajo2;

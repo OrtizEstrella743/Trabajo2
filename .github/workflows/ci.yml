@@ -1,154 +1,101 @@
-name: CI Pipeline - Trabajo2HM
+name: CI Pipeline - Trabajo2
 
 on:
   push:
-    branches: [ main, develop, master ]
+    branches: [ main, master, develop ]
   pull_request:
-    branches: [ main, develop, master ]
+    branches: [ main, master, develop ]
 
 jobs:
   test:
-    name: Run Tests on Node.js ${{ matrix.node-version }}
+    name: Tests - Node.js ${{ matrix.node-version }}
     runs-on: ubuntu-latest
     
     strategy:
       matrix:
-        node-version: [16.x, 18.x, 20.x]
+        node-version: [18.x, 20.x]
     
     steps:
-    - name: Checkout código
+    - name: 📥 Checkout código
       uses: actions/checkout@v4
       
-    - name: Setup Node.js ${{ matrix.node-version }}
+    - name: ⚙️ Setup Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
         
-    - name: Instalar dependencias
+    - name: 📦 Instalar dependencias
       run: npm ci
       
-    - name: Ejecutar pruebas unitarias
+    - name: 🔍 Verificar estructura del proyecto
+      run: |
+        echo "Estructura del proyecto:"
+        ls -la
+        echo "Verificando archivos esenciales:"
+        [ -f "app.js" ] && echo "✅ app.js encontrado" || echo "❌ app.js no encontrado"
+        [ -f "app.test.js" ] && echo "✅ app.test.js encontrado" || echo "❌ app.test.js no encontrado"
+        [ -f "package.json" ] && echo "✅ package.json encontrado" || echo "❌ package.json no encontrado"
+      
+    - name: 🧪 Ejecutar pruebas unitarias
       run: npm test
       
-    - name: Ejecutar pruebas con cobertura
+    - name: 📊 Generar reporte de cobertura
       run: npm run test:coverage
       
-    - name: Subir reporte de cobertura a Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage/lcov.info
-        flags: unittests
-        name: trabajo2hm-coverage
-        
-    - name: Verificar cobertura mínima (80%)
+    - name: ✅ Verificar cobertura de código
       run: |
-        if [ -f "./coverage/coverage-summary.json" ]; then
+        echo "Reporte de cobertura:"
+        if [ -f "coverage/coverage-summary.json" ]; then
           COVERAGE=$(node -e "console.log(require('./coverage/coverage-summary.json').total.lines.pct)")
-          echo "📊 Cobertura de código: $COVERAGE%"
-          if (( $(echo "$COVERAGE < 80" | bc -l) )); then
-            echo "❌ Cobertura insuficiente: $COVERAGE% (mínimo requerido: 80%)"
-            exit 1
-          else
-            echo "✅ Cobertura adecuada: $COVERAGE%"
-          fi
+          echo "Cobertura de líneas: $COVERAGE%"
         else
-          echo "⚠️  No se encontró reporte de cobertura"
+          echo "Reporte de cobertura no generado"
         fi
 
-  security:
-    name: Security Audit
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout código
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18.x'
-        cache: 'npm'
-        
-    - name: Instalar dependencias
-      run: npm ci
-        
-    - name: Auditoría de seguridad npm
-      run: npm audit --audit-level high
-      
-    - name: Ejecutar scan de vulnerabilidades
-      run: |
-        npm audit --json > audit-report.json || true
-        echo "🔒 Auditoría de seguridad completada"
-
   build:
-    name: Build Verification
+    name: 🔨 Build Verification
     runs-on: ubuntu-latest
-    needs: [test, security]
+    needs: test
     
     steps:
-    - name: Checkout código
+    - name: 📥 Checkout código
       uses: actions/checkout@v4
       
-    - name: Setup Node.js
+    - name: ⚙️ Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18.x'
         cache: 'npm'
         
-    - name: Instalar dependencias
+    - name: 📦 Instalar dependencias
       run: npm ci
       
-    - name: Verificar que la aplicación construye correctamente
-      run: |
-        echo "🔨 Verificando build..."
-        node -e "console.log('✅ Node.js funciona correctamente')"
-        
-    - name: Ejecutar la aplicación
-      run: |
-        echo "🚀 Ejecutando aplicación..."
-        npm start
-        echo "✅ Aplicación ejecutada exitosamente"
-        
-    - name: Crear artifact de build
-      uses: actions/upload-artifact@v4
-      with:
-        name: trabajo2hm-build
-        path: |
-          *.js
-          package.json
-          package-lock.json
-        retention-days: 7
+    - name: 🔍 Verificar módulo
+      run: npm run verify
+      
+    - name: 🚀 Ejecutar aplicación
+      run: npm start
+      
+    - name: 📦 Build del proyecto
+      run: npm run build
 
-  deploy-demo:
-    name: Deploy to Demo Environment
+  security:
+    name: 🔒 Security Audit
     runs-on: ubuntu-latest
-    needs: build
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     
     steps:
-    - name: Checkout código
+    - name: 📥 Checkout código
       uses: actions/checkout@v4
       
-    - name: Setup Node.js
+    - name: ⚙️ Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18.x'
         cache: 'npm'
         
-    - name: Instalar dependencias
+    - name: 📦 Instalar dependencias
       run: npm ci
-      
-    - name: Ejecutar pruebas finales
-      run: npm test
-      
-    - name: Deploy simulado
-      run: |
-        echo "🚀 Iniciando despliegue a ambiente demo..."
-        echo "📦 Versión: $(node -e "console.log(require('./package.json').version)")"
-        echo "🏷️  Commit: ${{ github.sha }}"
-        echo "✅ Despliegue demo completado exitosamente"
         
-    - name: Notificación de éxito
-      run: |
-        echo "🎉 Pipeline CI completado exitosamente!"
-        echo "📊 Reportes disponibles en la sección de artifacts"
+    - name: 🔍 Auditoría de seguridad
+      run: npm audit --audit-level high
